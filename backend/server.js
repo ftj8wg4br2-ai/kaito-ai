@@ -1,0 +1,93 @@
+import express from "express";
+import cors from "cors";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const app = express();
+const port = process.env.PORT || 3001;
+const secret = process.env.JWT_SECRET || "kaito-dev-secret";
+
+app.use(cors());
+app.use(express.json());
+
+const users = new Map();
+
+function signToken(email, name) {
+  return jwt.sign({ email, name }, secret, { expiresIn: "7d" });
+}
+
+app.post("/api/auth/apple", (req, res) => {
+  const email = req.body?.email || "sotamori0109@icloud.com";
+  const name = req.body?.name || "Kaito User";
+  const token = signToken(email, name);
+
+  users.set(email, { id: `user_${Date.now()}`, email, name });
+
+  return res.json({
+    id: `user_${Date.now()}`,
+    email,
+    name,
+    token,
+    createdAt: Date.now()
+  });
+});
+
+app.post("/api/auth/google", (req, res) => {
+  const email = req.body?.email || "y18204598@edu.city.yokohama.jp";
+  const name = req.body?.name || "Kaito User";
+  const token = signToken(email, name);
+
+  users.set(email, { id: `user_${Date.now()}`, email, name });
+
+  return res.json({
+    id: `user_${Date.now()}`,
+    email,
+    name,
+    token,
+    createdAt: Date.now()
+  });
+});
+
+app.post("/api/auth/logout", (_, res) => {
+  res.json({ ok: true });
+});
+
+app.get("/api/sync", (req, res) => {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.replace("Bearer ", "");
+
+  try {
+    const decoded = jwt.verify(token, secret);
+    const email = decoded.email || "unknown@example.com";
+
+    return res.json({
+      tasks: [],
+      logs: [],
+      memories: [{ id: "memory_1", key: "user", value: email, createdAt: Date.now() }]
+    });
+  } catch {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+});
+
+app.post("/api/sync", (req, res) => {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.replace("Bearer ", "");
+
+  try {
+    jwt.verify(token, secret);
+    return res.json({ ok: true, savedAt: Date.now() });
+  } catch {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+});
+
+app.get("/health", (_, res) => {
+  res.json({ ok: true, service: "kaito-api" });
+});
+
+app.listen(port, () => {
+  console.log(`Kaito API listening on http://localhost:${port}`);
+});
