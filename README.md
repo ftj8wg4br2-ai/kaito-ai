@@ -1,34 +1,20 @@
 # Kaito
 
-Kaito is a speech-first personal AI agent that operates with minimal UI and maximal autonomy.
+Kaito is a speech-first personal AI agent designed for modern cross-platform use.
 
-## Concept
-- No always-visible chat panel
-- User speaks naturally
-- Kaito interprets intent and plans tasks
-- Kaito executes work inside safety boundaries
-- Only essential UI is shown
-- Safety, backup, permission checks, and recovery are built in
-
-## Stack
-- React + TypeScript
-- Vite
-- Zustand
-- Web Speech API
-- LocalStorage for persistence
-- Safety gate for critical operations
+## Included
+- Speech-first web app shell
+- Apple Sign In / Google OAuth entry points
+- Local persistent task history
+- Backup and restore primitives
+- Cross-device-ready data sync layer
 
 ## Run
 ```bash
 npm install
+npm install --workspace backend
 npm run dev
 ```
 
-## Current stage
-This is the core MVP foundation. The next phases are:
-1. voice control and task execution
-2. memory and history
-3. calendar/timer management
-4. Google integration and document handling
-5. secure backups and device state monitoring
-6. multimedia generation and summarization
+## Notes
+This is a working cross-platform foundation. Full production Apple and Google OAuth, iOS packaging, Chrome OS PWA polish, and Mac app packaging require platform credentials and app-store registration.
