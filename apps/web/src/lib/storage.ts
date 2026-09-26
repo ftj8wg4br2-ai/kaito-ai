@@ -1,5 +1,4 @@
 import { BackupSnapshot, LogEntry, MemoryEntry, Task } from "../types";
-import { getAuthToken } from "./auth";
 
 const STORAGE_KEYS = {
   tasks: "kaito.tasks",
@@ -18,113 +17,35 @@ export function safeRead<T>(key: string, fallback: T): T {
   }
 }
 
-export function safeWrite<T>(key: string, value: T) {
+export function safeWrite<T>(key: string, value: T): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    // ignore
+    // Local-only mode continues even when storage is unavailable.
   }
 }
 
-// ローカルストレージ
-export function loadTasks(): Task[] {
-  return safeRead<Task[]>(STORAGE_KEYS.tasks, []);
-}
+export const loadTasks = (): Task[] => safeRead<Task[]>(STORAGE_KEYS.tasks, []);
+export const saveTasks = (tasks: Task[]): void => safeWrite(STORAGE_KEYS.tasks, tasks);
+export const loadLogs = (): LogEntry[] => safeRead<LogEntry[]>(STORAGE_KEYS.logs, []);
+export const saveLogs = (logs: LogEntry[]): void => safeWrite(STORAGE_KEYS.logs, logs);
+export const loadMemories = (): MemoryEntry[] => safeRead<MemoryEntry[]>(STORAGE_KEYS.memories, []);
+export const saveMemories = (memories: MemoryEntry[]): void => safeWrite(STORAGE_KEYS.memories, memories);
 
-export function saveTasks(tasks: Task[]) {
-  safeWrite(STORAGE_KEYS.tasks, tasks);
-  syncToServer("tasks", tasks);
-}
-
-export function loadLogs(): LogEntry[] {
-  return safeRead<LogEntry[]>(STORAGE_KEYS.logs, []);
-}
-
-export function saveLogs(logs: LogEntry[]) {
-  safeWrite(STORAGE_KEYS.logs, logs);
-  syncToServer("logs", logs);
-}
-
-export function loadMemories(): MemoryEntry[] {
-  return safeRead<MemoryEntry[]>(STORAGE_KEYS.memories, []);
-}
-
-export function saveMemories(memories: MemoryEntry[]) {
-  safeWrite(STORAGE_KEYS.memories, memories);
-  syncToServer("memories", memories);
-}
-
-// バックアップ
 export function createBackupSnapshot(
   tasks: Task[],
   logs: LogEntry[],
   memories: MemoryEntry[],
   state: string
 ): BackupSnapshot {
-  return {
-    version: 1,
-    savedAt: Date.now(),
-    tasks,
-    logs,
-    memories,
-    state
-  };
+  return { version: 1, savedAt: Date.now(), tasks, logs, memories, state };
 }
 
-export function saveBackupSnapshot(snapshot: BackupSnapshot) {
+export const saveBackupSnapshot = (snapshot: BackupSnapshot): void =>
   safeWrite(STORAGE_KEYS.backup, snapshot);
-  syncToServer("backup", snapshot);
-}
 
-export function loadBackupSnapshot(): BackupSnapshot | null {
-  return safeRead<BackupSnapshot | null>(STORAGE_KEYS.backup, null);
-}
+export const loadBackupSnapshot = (): BackupSnapshot | null =>
+  safeRead<BackupSnapshot | null>(STORAGE_KEYS.backup, null);
 
-export function saveAppState(state: string) {
-  safeWrite(STORAGE_KEYS.state, state);
-}
-
-export function loadAppState(): string {
-  return safeRead<string>(STORAGE_KEYS.state, "idle");
-}
-
-// クラウド同期
-async function syncToServer(dataType: string, data: any) {
-  const token = getAuthToken();
-  if (!token) return;
-
-  try {
-    await fetch("/api/sync", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      body: JSON.stringify({ dataType, data, timestamp: Date.now() })
-    });
-  } catch (error) {
-    console.error("Sync failed:", error);
-  }
-}
-
-// クラウドからの復元
-export async function restoreFromServer(): Promise<{
-  tasks: Task[];
-  logs: LogEntry[];
-  memories: MemoryEntry[];
-} | null> {
-  const token = getAuthToken();
-  if (!token) return null;
-
-  try {
-    const response = await fetch("/api/sync", {
-      headers: {
-        "Authorization": `Bearer ${token}`
-      }
-    });
-    return response.json();
-  } catch (error) {
-    console.error("Restore failed:", error);
-    return null;
-  }
-}
+export const saveAppState = (state: string): void => safeWrite(STORAGE_KEYS.state, state);
+export const loadAppState = (): string => safeRead<string>(STORAGE_KEYS.state, "idle");
